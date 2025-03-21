@@ -1,13 +1,10 @@
-import React, { useState } from "react";
+import { IDataRow } from "@/types/datagrid";
+import React, { useEffect, useState } from "react";
+import { Checkbox } from "./common/Checkbox";
+import { Button } from "./common/Button";
+import { Table } from "./common/Table";
 
-type DataRow = {
-  name: string;
-  device: string;
-  path: string;
-  status: string;
-};
-
-const sampleData: DataRow[] = [
+const sampleData: IDataRow[] = [
   { name: "smss.exe", device: "Stark", path: "\\Device\\HarddiskVolume2\\Windows\\System32\\smss.exe", status: "scheduled" },
   { name: "netsh.exe", device: "Targaryen", path: "\\Device\\HarddiskVolume2\\Windows\\System32\\netsh.exe", status: "available" },
   { name: "uxtheme.dll", device: "Lanniester", path: "\\Device\\HarddiskVolume1\\Windows\\System32\\uxtheme.dll", status: "available" },
@@ -16,88 +13,53 @@ const sampleData: DataRow[] = [
 ];
 
 const Datagrid: React.FC = () => {
-  const [selectedRows, setSelectedRows] = useState<DataRow[]>([]);
+  const [selectedRows, setSelectedRows] = useState<IDataRow[]>([]);
   const [selectAll, setSelectAll] = useState<boolean>(false);
+
+  useEffect(() => {
+    setSelectAll(selectedRows.length === sampleData.length);
+  }, [selectedRows]);
 
   const handleSelectAll = () => {
     if (selectAll) {
       setSelectedRows([]);
     } else {
-      setSelectedRows(sampleData.filter(row => row.status === "available"));
+      setSelectedRows(sampleData);
     }
     setSelectAll(!selectAll);
   };
 
-  const handleRowSelect = (row: DataRow) => {
+  const handleRowSelect = (row: IDataRow) => {
     setSelectedRows(prev =>
       prev.includes(row) ? prev.filter(r => r !== row) : [...prev, row]
     );
   };
 
-  const isDownloadEnabled =
-    selectedRows.length > 0 && selectedRows.every(row => row.status === "available");
+  const isDownloadEnabled: boolean =
+    selectedRows.length > 0 && selectedRows.some(row => row.status === "available");
+
+  const handleDownload = () => {
+    const availableItems: string = selectedRows
+      .filter(row => row.status === "available")
+      .map(({ name, device, path }) => `Name: ${name}, Device: ${device}, Path: ${path}`)
+      .join("\n");
+
+    if (availableItems) {
+      alert(`Downloaded Items:\n${availableItems}`);
+    }
+  };
 
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-4">Datagrid</h1>
-      <table className="w-full border-collapse border border-gray-300 shadow-lg">
-        <thead>
-          <tr className="bg-gray-200">
-            <th className="p-3 text-left">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={selectedRows.length === sampleData.length}
-                  onChange={handleSelectAll}
-                  className="w-4 h-4"
-                />
-                <span className="text-sm font-medium">
-                  {selectedRows.length > 0 ? `${selectedRows.length} Selected` : "None Selected"}
-                </span>
-              </div>
-            </th>
-            <th className="p-3 text-left">Name</th>
-            <th className="p-3 text-left">Device</th>
-            <th className="p-3 text-left">Path</th>
-            <th className="p-3 text-left">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sampleData.map(row => (
-            <tr
-              key={row.name}
-              className="border-t border-gray-200 hover:bg-gray-100 transition"
-            >
-              <td className="p-3">
-                <input
-                  type="checkbox"
-                  checked={selectedRows.includes(row)}
-                  onChange={() => handleRowSelect(row)}
-                  className="w-4 h-4"
-                />
-              </td>
-              <td className="p-3">{row.name}</td>
-              <td className="p-3">{row.device}</td>
-              <td className="p-3">{row.path}</td>
-              <td className="p-3 flex items-center space-x-2">
-                {row.status === "available" && (
-                  <span className="w-3 h-3 bg-green-500 rounded-full"></span>
-                )}
-                <span className="capitalize">{row.status}</span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <button
-        className={`mt-4 px-4 py-2 rounded-lg text-white font-medium ${
-          isDownloadEnabled ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-400 cursor-not-allowed"
-        }`}
-        disabled={!isDownloadEnabled}
-        onClick={() => alert(JSON.stringify(selectedRows, null, 2))}
-      >
-        Download Selected
-      </button>
+    <div className="container">
+      <h1 className="title">Datagrid</h1>
+      <div className="controls">
+        <div className="select-all">
+          <Checkbox checked={selectAll} onChange={handleSelectAll} />
+          <span>{selectedRows.length > 0 ? `${selectedRows.length} Selected` : "None Selected"}</span>
+        </div>
+        <Button label="Download Selected" disabled={!isDownloadEnabled} onClick={handleDownload} />
+      </div>
+      <Table data={sampleData} selectedRows={selectedRows} onRowSelect={handleRowSelect} />
     </div>
   );
 };
